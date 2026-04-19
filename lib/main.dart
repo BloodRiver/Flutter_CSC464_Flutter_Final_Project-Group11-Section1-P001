@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'firebase_options.dart';
 
 void main() async {
@@ -14,124 +16,308 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AI Language Tutor',
+      title: 'AI Language Learning App (Gemini API Chat)',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006D77)),
       ),
-      home: const MyHomePage(),
+      home: const HomePage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _textEditingController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+class _HomePageState extends State<HomePage> {
+  static const List<String> _languages = <String>[
+    'English',
+    'Spanish',
+    'French',
+    'German',
+    'Japanese',
+    'Bangla',
+    'Arabic',
+  ];
 
-  Future<void> _addTextToFirestore() async {
-    final String inputText = _textEditingController.text.trim();
+  String _selectedLanguage = _languages.first;
 
-    if (inputText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter some text into the text field"),
+  void _navigateToChatScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute<ChatScreen>(
+        builder: (_) => ChatScreen(selectedLanguage: _selectedLanguage),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AI Language Learning App'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Card(
+              elevation: 3,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Project: AI Language Learning App (Gemini API Chat)',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Select language',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedLanguage,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                      ),
+                      items: _languages
+                          .map(
+                            (String language) => DropdownMenuItem<String>(
+                              value: language,
+                              child: Text(language),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (String? value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setState(() {
+                          _selectedLanguage = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _navigateToChatScreen,
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Navigate to chat screen'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
-      );
+      ),
+    );
+  }
+}
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({
+    required this.selectedLanguage,
+    super.key,
+  });
+
+  final String selectedLanguage;
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  static const String _geminiModel = 'gemini-2.0-flash';
+  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
+
+  final TextEditingController _messageController = TextEditingController();
+  final List<_ChatMessage> _messages = <_ChatMessage>[];
+
+  bool _isSending = false;
+
+  Future<void> _sendMessage() async {
+    final String userText = _messageController.text.trim();
+    if (userText.isEmpty || _isSending) {
       return;
     }
 
+    setState(() {
+      _messages.add(_ChatMessage(role: 'user', text: userText));
+      _isSending = true;
+    });
+    _messageController.clear();
+
     try {
-      await _firestore.collection('texts').add({
-        'textContent': inputText,
-        'timestamp': FieldValue.serverTimestamp(),
+      if (_apiKey.isEmpty) {
+        throw Exception(
+          'Missing GEMINI_API_KEY. Run with --dart-define=GEMINI_API_KEY=your_key',
+        );
+      }
+
+      final String prompt =
+          'You are a friendly ${widget.selectedLanguage} language tutor. '
+          'Answer in concise teaching style and include simple examples when useful. '
+          'Student message: $userText';
+
+      final Uri uri = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/$_geminiModel:generateContent?key=$_apiKey',
+      );
+
+      final http.Response response = await http.post(
+        uri,
+        headers: <String, String>{'Content-Type': 'application/json'},
+        body: jsonEncode(<String, dynamic>{
+          'contents': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'role': 'user',
+              'parts': <Map<String, String>>[
+                <String, String>{'text': prompt},
+              ],
+            },
+          ],
+        }),
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Gemini API error (${response.statusCode}): ${response.body}');
+      }
+
+      final Map<String, dynamic> decoded =
+          jsonDecode(response.body) as Map<String, dynamic>;
+      final List<dynamic> candidates = decoded['candidates'] as List<dynamic>? ?? <dynamic>[];
+      final Map<String, dynamic> firstCandidate =
+          candidates.isNotEmpty ? candidates.first as Map<String, dynamic> : <String, dynamic>{};
+      final Map<String, dynamic> content =
+          firstCandidate['content'] as Map<String, dynamic>? ?? <String, dynamic>{};
+      final List<dynamic> parts = content['parts'] as List<dynamic>? ?? <dynamic>[];
+      final Map<String, dynamic> firstPart =
+          parts.isNotEmpty ? parts.first as Map<String, dynamic> : <String, dynamic>{};
+      final String botReply =
+          (firstPart['text'] as String?)?.trim().isNotEmpty == true
+              ? firstPart['text'] as String
+              : 'I could not generate a response. Please try again.';
+
+      setState(() {
+        _messages.add(_ChatMessage(role: 'assistant', text: botReply));
       });
-
-      _textEditingController.clear();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Message successfully saved to Firestore!"),
-        ),
-      );
-      print("successfully saved to firestore");
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving message to Firestore: $e")),
-      );
-
-      print('Error saving to firestore: $e');
+    } catch (error) {
+      setState(() {
+        _messages.add(
+          _ChatMessage(
+            role: 'assistant',
+            text: 'Error: $error',
+          ),
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
-    _textEditingController.dispose();
-
+    _messageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      appBar: AppBar(
+        title: Text('${widget.selectedLanguage} Tutor Chat'),
+      ),
+      body: SafeArea(
         child: Column(
           children: [
-            TextField(
-              controller: _textEditingController,
-              decoration: InputDecoration(
-                labelText: "Enter your message here",
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.multiline,
+            Expanded(
+              child: _messages.isEmpty
+                  ? const Center(
+                      child: Text('Start chatting with your AI tutor.'),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _messages.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final _ChatMessage message = _messages[index];
+                        final bool isUser = message.role == 'user';
+                        return Align(
+                          alignment: isUser
+                              ? Alignment.centerRight
+                              : Alignment.centerLeft,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.all(12),
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            decoration: BoxDecoration(
+                              color: isUser
+                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(message.text),
+                          ),
+                        );
+                      },
+                    ),
             ),
-            ElevatedButton(
-              onPressed: _addTextToFirestore,
-              child: const Text("Save to Firestore"),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      textInputAction: TextInputAction.send,
+                      decoration: const InputDecoration(
+                        hintText: 'Type your message...',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _isSending ? null : _sendMessage,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Send'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _ChatMessage {
+  _ChatMessage({required this.role, required this.text});
+
+  final String role;
+  final String text;
 }
