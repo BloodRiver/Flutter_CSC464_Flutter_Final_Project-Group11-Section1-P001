@@ -18,10 +18,62 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const Color bg = Color(0xFF05070D);
+    const Color panel = Color(0xFF0E1628);
+    const Color blue = Color(0xFF2F7BFF);
+    const Color text = Color(0xFFE8F0FF);
+
     return MaterialApp(
       title: 'AI Language Learning App (Gemini API Chat)',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006D77)),
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: bg,
+        colorScheme: const ColorScheme.dark(
+          primary: blue,
+          secondary: blue,
+          surface: panel,
+          onPrimary: Colors.white,
+          onSurface: text,
+        ),
+        cardTheme: const CardThemeData(
+          color: panel,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(16)),
+            side: BorderSide(color: Color(0xFF1B2A4A), width: 1),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: bg,
+          foregroundColor: text,
+          elevation: 0,
+        ),
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: true,
+          fillColor: Color(0xFF0C1221),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFF213968)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Color(0xFF213968)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: blue, width: 1.2),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: blue,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+        ),
       ),
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
@@ -34,17 +86,13 @@ class HomePage extends StatefulWidget {
 
   @override
   State<HomePage> createState() => _HomePageState();
+  
 }
 
 class _HomePageState extends State<HomePage> {
   static const List<String> _languages = <String>[
     'English',
-    'Spanish',
-    'French',
-    'German',
-    'Japanese',
     'Bangla',
-    'Arabic',
   ];
 
   String _selectedLanguage = _languages.first;
@@ -69,61 +117,152 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.all(20),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
-            child: Card(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Project: AI Language Learning App (Gemini API Chat)',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Select language',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedLanguage,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _AppLogo(),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0B1F44),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF2E63B8)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome to your AI tutor',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      items: _languages
-                          .map(
-                            (String language) => DropdownMenuItem<String>(
-                              value: language,
-                              child: Text(language),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Choose English or Bangla and start chatting to practice instantly.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFFABC3F5),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (String? value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setState(() {
-                          _selectedLanguage = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _navigateToChatScreen,
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('Navigate to chat screen'),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF102A61),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF3A73CC)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select language',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedLanguage,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                        ),
+                        items: _languages
+                            .map(
+                              (String language) => DropdownMenuItem<String>(
+                                value: language,
+                                child: Text(language),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (String? value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedLanguage = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A3E87),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF4A89E8)),
+                  ),
+                  child: FilledButton.icon(
+                    onPressed: _navigateToChatScreen,
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    label: const Text('Navigate to chat screen'),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AppLogo extends StatelessWidget {
+  const _AppLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF08152F),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2F7BFF)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 52,
+            width: 52,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: <Color>[Color(0xFF1B4EB8), Color(0xFF48A0FF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.translate_rounded, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AI Language Learning App',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Gemini API Chat Tutor',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFFABC3F5),
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -251,7 +390,10 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: _messages.isEmpty
                   ? const Center(
-                      child: Text('Start chatting with your AI tutor.'),
+                      child: Text(
+                        'Start chatting with your AI tutor.',
+                        style: TextStyle(color: Color(0xFFABC3F5)),
+                      ),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
@@ -269,11 +411,23 @@ class _ChatScreenState extends State<ChatScreen> {
                             constraints: const BoxConstraints(maxWidth: 320),
                             decoration: BoxDecoration(
                               color: isUser
-                                  ? Theme.of(context).colorScheme.primaryContainer
-                                  : Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  ? const Color(0xFF2F7BFF)
+                                  : const Color(0xFF101D34),
+                              border: Border.all(
+                                color: isUser
+                                    ? const Color(0xFF4A90FF)
+                                    : const Color(0xFF203A69),
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(message.text),
+                            child: Text(
+                              message.text,
+                              style: TextStyle(
+                                color: isUser
+                                    ? Colors.white
+                                    : const Color(0xFFE8F0FF),
+                              ),
+                            ),
                           ),
                         );
                       },
