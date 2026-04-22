@@ -1,24 +1,25 @@
-import "package:ai_language_tutor/input_widgets/input_fields.dart";
-import "package:flutter/material.dart";
+import 'package:ai_language_tutor/input_widgets/input_fields.dart';
+import 'package:ai_language_tutor/screens/mainscreen.dart';
+import 'package:ai_language_tutor/screens/register.dart';
+import 'package:flutter/material.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _retypeController = TextEditingController();
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _retypeController.dispose();
+    _emailController.clear();
+    _passwordController.clear();
     super.dispose();
   }
 
@@ -37,7 +38,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Padding(
                     padding: EdgeInsets.only(bottom: 40),
                     child: Text(
-                      "Create an Account for AI Language Tutor",
+                      "Welcome to AI Language Tutor",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 28,
@@ -54,22 +55,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     padding: EdgeInsets.only(bottom: 20),
                     child: PasswordInputField(controller: _passwordController),
                   ),
-                  Text("Re-Type Password", style: TextStyle(fontSize: 16)),
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 20),
-                    child: PasswordInputField(controller: _retypeController),
-                  ),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10.0),
                     child: FilledButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<MainScreen>(
+                            builder: (_) => MainScreen(),
+                          ),
+                        );
+                      },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 8.0,
                           horizontal: 16,
                         ),
                         child: Text(
-                          "Register",
+                          "Login",
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -77,10 +79,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute<RegisterScreen>(
+                          builder: (_) => RegisterScreen(),
+                        ),
+                      );
                     },
                     child: Text(
-                      "Already have an account? Click here to Login",
+                      "Don't have an account? Click here to Register",
                       style: TextStyle(
                         decoration: TextDecoration.underline,
                         fontWeight: FontWeight.bold,
