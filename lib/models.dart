@@ -103,8 +103,112 @@ class User {
   }
 
   Future<void> updateLogin() async {
-    DocumentReference userRef = User._db.doc(this.id!);
+    DocumentReference userRef = User._db
+        .collection(User._collectionName)
+        .doc(this.id!);
 
     await userRef.update({'lastLoggedIn': DateTime.now()});
+  }
+}
+
+class ChatMessage {
+  late String id;
+  final bool ai;
+  final String messageContent;
+  final DateTime timeSent;
+  bool saved = false;
+
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static const String _collectionName = "chat_messages";
+
+  ChatMessage({
+    required this.ai,
+    required this.messageContent,
+    required this.timeSent,
+  });
+
+  Map<String, dynamic> toMap() {
+    Map<String, dynamic> map = Map<String, dynamic>();
+
+    map['ai'] = ai;
+    map['messageContent'] = messageContent;
+    map['timeSent'] = timeSent;
+
+    return map;
+  }
+
+  Future<void> save() async {
+    if (!saved) {
+      DocumentReference docRef = await ChatMessage._db
+          .collection(ChatMessage._collectionName)
+          .add(this.toMap());
+
+      this.id = docRef.id;
+      saved = true;
+    }
+  }
+}
+
+class Conversation {
+  late String id;
+  List<ChatMessage> _messages = [];
+  final String userId;
+  final DateTime dateCreated;
+
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static const String _collectionName = "conversations";
+
+  Conversation({required this.userId, required this.dateCreated});
+
+  List<String> convertMessagesToIds() {
+    List<String> messageIds = [];
+
+    for (ChatMessage eachMessage in _messages) {
+      messageIds.add(eachMessage.id);
+    }
+
+    return messageIds;
+  }
+
+  Map<String, dynamic> toMap() {
+    Map<String, dynamic> map = Map<String, dynamic>();
+
+    List<String> messageIds = convertMessagesToIds();
+
+    map['userId'] = userId;
+    map['dateCreated'] = dateCreated;
+    map['messages'] = messageIds;
+
+    return map;
+  }
+
+  Future<void> addMessage(ChatMessage newMessage) async {
+    _messages.add(newMessage);
+    await newMessage.save();
+
+    await Conversation._db
+        .collection(Conversation._collectionName)
+        .doc(this.id)
+        .update({'messages': convertMessagesToIds()});
+  }
+
+  Future<void> saveNew() async {
+    DocumentReference docRef = await Conversation._db
+        .collection(Conversation._collectionName)
+        .add(this.toMap());
+
+    this.id = docRef.id;
+  }
+
+  bool get isEmpty {
+    return _messages.isEmpty;
+  }
+
+  int get length {
+    return _messages.length;
+  }
+
+  ChatMessage getByIndex(int index) {
+    return _messages[index];
   }
 }

@@ -113,9 +113,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             );
                           } else {
                             User newUser = User.create(
-                              firstName: _firstNameController.text,
-                              lastName: _lastNameController.text,
-                              email: _emailController.text,
+                              firstName: _firstNameController.text.trim(),
+                              lastName: _lastNameController.text.trim(),
+                              email: _emailController.text.trim(),
                               password: _passwordController.text,
                             );
 

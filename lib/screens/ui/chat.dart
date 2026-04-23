@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 import 'dart:convert';
+import 'package:ai_language_tutor/models.dart';
 
 class ChatScreen extends StatefulWidget {
   String? selectedLanguage;
@@ -18,7 +19,10 @@ class _ChatScreenState extends State<ChatScreen> {
   static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   final TextEditingController _messageController = TextEditingController();
-  final List<_ChatMessage> _messages = <_ChatMessage>[];
+  final Conversation _conversation = Conversation(
+    dateCreated: DateTime.now(),
+    userId: Get.find<User>(tag: 'currentUser').id!,
+  );
 
   bool _isSending = false;
 
@@ -28,8 +32,14 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    setState(() {
-      _messages.add(_ChatMessage(role: 'user', text: userText));
+    setState(() async {
+      await _conversation.addMessage(
+        ChatMessage(
+          ai: false,
+          messageContent: userText,
+          timeSent: DateTime.now(),
+        ),
+      );
       _isSending = true;
     });
     _messageController.clear();
@@ -91,12 +101,24 @@ class _ChatScreenState extends State<ChatScreen> {
           ? firstPart['text'] as String
           : 'I could not generate a response. Please try again.';
 
-      setState(() {
-        _messages.add(_ChatMessage(role: 'assistant', text: botReply));
+      setState(() async {
+        await _conversation.addMessage(
+          ChatMessage(
+            ai: true,
+            messageContent: botReply,
+            timeSent: DateTime.now(),
+          ),
+        );
       });
     } catch (error) {
-      setState(() {
-        _messages.add(_ChatMessage(role: 'assistant', text: 'Error: $error'));
+      setState(() async {
+        await _conversation.addMessage(
+          ChatMessage(
+            ai: true,
+            messageContent: 'Error: $error',
+            timeSent: DateTime.now(),
+          ),
+        );
       });
     } finally {
       if (mounted) {
@@ -127,7 +149,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             children: [
               Expanded(
-                child: _messages.isEmpty
+                child: _conversation.isEmpty
                     ? const Center(
                         child: Text(
                           'Start chatting with your AI tutor.',
@@ -136,10 +158,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(12),
-                        itemCount: _messages.length,
+                        itemCount: _conversation.length,
                         itemBuilder: (BuildContext context, int index) {
-                          final _ChatMessage message = _messages[index];
-                          final bool isUser = message.role == 'user';
+                          final ChatMessage message = _conversation.getByIndex(
+                            index,
+                          );
+                          final bool isUser = !message.ai;
                           return Align(
                             alignment: isUser
                                 ? Alignment.centerRight
@@ -160,7 +184,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                message.text,
+                                message.messageContent,
                                 style: TextStyle(
                                   color: isUser
                                       ? Colors.white
@@ -231,11 +255,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-}
-
-class _ChatMessage {
-  _ChatMessage({required this.role, required this.text});
-
-  final String role;
-  final String text;
 }

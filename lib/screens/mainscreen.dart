@@ -1,4 +1,5 @@
 import 'package:ai_language_tutor/screens/ui/chat.dart';
+import 'package:ai_language_tutor/screens/ui/chat_history.dart';
 import 'package:ai_language_tutor/screens/ui/home.dart';
 import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ class _MainScreenState extends State<MainScreen> {
         controller: navigationController.pageController,
         onPageChanged: (index) =>
             navigationController.currentPageIndex.value = index,
-        children: [HomePage(), ChatScreen()],
+        children: [HomePage(), ChatScreen(), ChatHistoryScreen()],
       ),
       bottomNavigationBar: Obx(
         () => NavigationBar(

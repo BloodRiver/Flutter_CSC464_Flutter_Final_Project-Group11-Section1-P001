@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () async {
                         if (_formKey.currentState!.validate()) {
                           User? currentUser = await User.findUserByEmail(
-                            email: _emailController.text,
+                            email: _emailController.text.trim(),
                           );
 
                           if (currentUser == null) {
@@ -93,6 +93,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                             return;
                           }
+                          _emailController.clear();
+                          _passwordController.clear();
+                          await currentUser.updateLogin();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Login Success",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+
                           Get.put<User>(currentUser);
                           Navigator.of(context).push(
                             MaterialPageRoute<MainScreen>(
