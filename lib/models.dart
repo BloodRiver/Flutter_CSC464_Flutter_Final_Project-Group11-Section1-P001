@@ -107,7 +107,7 @@ class User {
         .collection(User._collectionName)
         .doc(this.id!);
 
-    await userRef.update({'lastLoggedIn': DateTime.now()});
+    await userRef.update({'lastLoggedIn': FieldValue.serverTimestamp()});
   }
 }
 
