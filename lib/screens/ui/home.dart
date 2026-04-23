@@ -1,4 +1,6 @@
+import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'chat.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,11 +16,7 @@ class _HomePageState extends State<HomePage> {
   String _selectedLanguage = _languages.first;
 
   void _navigateToChatScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute<ChatScreen>(
-        builder: (_) => ChatScreen(selectedLanguage: _selectedLanguage),
-      ),
-    );
+    Get.find<NavigationController>().changePage(1);
   }
 
   @override

@@ -1,11 +1,13 @@
+import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:get/get.dart';
 import 'dart:convert';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({required this.selectedLanguage, super.key});
+  String? selectedLanguage;
 
-  final String selectedLanguage;
+  ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -113,88 +115,119 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('${widget.selectedLanguage} Tutor Chat')),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: _messages.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Start chatting with your AI tutor.',
-                        style: TextStyle(color: Color(0xFFABC3F5)),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _messages.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final _ChatMessage message = _messages[index];
-                        final bool isUser = message.role == 'user';
-                        return Align(
-                          alignment: isUser
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            padding: const EdgeInsets.all(12),
-                            constraints: const BoxConstraints(maxWidth: 320),
-                            decoration: BoxDecoration(
-                              color: isUser
-                                  ? const Color(0xFF2F7BFF)
-                                  : const Color(0xFF101D34),
-                              border: Border.all(
+    try {
+      widget.selectedLanguage = Get.find<String>(tag: "selectedLanguage");
+    } catch (e) {
+      print(e);
+    }
+    if (widget.selectedLanguage != null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('${widget.selectedLanguage} Tutor Chat')),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: _messages.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Start chatting with your AI tutor.',
+                          style: TextStyle(color: Color(0xFFABC3F5)),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _messages.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final _ChatMessage message = _messages[index];
+                          final bool isUser = message.role == 'user';
+                          return Align(
+                            alignment: isUser
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.all(12),
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              decoration: BoxDecoration(
                                 color: isUser
-                                    ? const Color(0xFF4A90FF)
-                                    : const Color(0xFF203A69),
+                                    ? const Color(0xFF2F7BFF)
+                                    : const Color(0xFF101D34),
+                                border: Border.all(
+                                  color: isUser
+                                      ? const Color(0xFF4A90FF)
+                                      : const Color(0xFF203A69),
+                                ),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              message.text,
-                              style: TextStyle(
-                                color: isUser
-                                    ? Colors.white
-                                    : const Color(0xFFE8F0FF),
+                              child: Text(
+                                message.text,
+                                style: TextStyle(
+                                  color: isUser
+                                      ? Colors.white
+                                      : const Color(0xFFE8F0FF),
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      textInputAction: TextInputAction.send,
-                      decoration: const InputDecoration(
-                        hintText: 'Type your message...',
-                        border: OutlineInputBorder(),
+                          );
+                        },
                       ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _isSending ? null : _sendMessage,
-                    child: _isSending
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Send'),
-                  ),
-                ],
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        textInputAction: TextInputAction.send,
+                        decoration: const InputDecoration(
+                          hintText: 'Type your message...',
+                          border: OutlineInputBorder(),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: _isSending ? null : _sendMessage,
+                      child: _isSending
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Send'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text("Please Select a Language from the Home Screen"),
+          ),
+          FilledButton(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 8.0,
+                horizontal: 16,
+              ),
+              child: Text("Go Back Home"),
+            ),
+            onPressed: () {
+              Get.find<NavigationController>().changePage(0);
+            },
+          ),
+        ],
       ),
     );
   }

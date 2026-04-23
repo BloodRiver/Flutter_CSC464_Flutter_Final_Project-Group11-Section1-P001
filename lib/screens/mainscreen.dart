@@ -1,6 +1,8 @@
 import 'package:ai_language_tutor/screens/ui/chat.dart';
 import 'package:ai_language_tutor/screens/ui/home.dart';
+import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -10,36 +12,32 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-  final PageController _pageController = PageController();
   @override
   Widget build(BuildContext context) {
+    final NavigationController navigationController = Get.put(
+      NavigationController(),
+    );
     return Scaffold(
       body: PageView(
-        controller: _pageController,
-        children: [
-          HomePage(),
-          ChatScreen(selectedLanguage: "English"),
-        ],
+        controller: navigationController.pageController,
+        onPageChanged: (index) =>
+            navigationController.currentPageIndex.value = index,
+        children: [HomePage(), ChatScreen()],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) {
-          setState(() => _currentIndex = i);
-          _pageController.animateToPage(
-            i,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.ease,
-          );
-        },
-        destinations: [
-          NavigationDestination(icon: Icon(Icons.home), label: "Home"),
-          NavigationDestination(icon: Icon(Icons.chat), label: "Chat"),
-          NavigationDestination(
-            icon: Icon(Icons.history),
-            label: "Chat History",
-          ),
-        ],
+      bottomNavigationBar: Obx(
+        () => NavigationBar(
+          selectedIndex: navigationController.currentPageIndex.value,
+          onDestinationSelected: (index) =>
+              navigationController.changePage(index),
+          destinations: [
+            NavigationDestination(icon: Icon(Icons.home), label: "Home"),
+            NavigationDestination(icon: Icon(Icons.chat), label: "Chat"),
+            NavigationDestination(
+              icon: Icon(Icons.history),
+              label: "Chat History",
+            ),
+          ],
+        ),
       ),
     );
   }

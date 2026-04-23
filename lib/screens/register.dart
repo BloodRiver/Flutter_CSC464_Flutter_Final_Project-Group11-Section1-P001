@@ -1,4 +1,5 @@
 import "package:ai_language_tutor/input_widgets/input_fields.dart";
+import "package:ai_language_tutor/models.dart";
 import "package:flutter/material.dart";
 
 class RegisterScreen extends StatefulWidget {
@@ -10,12 +11,16 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _retypeController = TextEditingController();
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _retypeController.dispose();
@@ -44,6 +49,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Row(
+                      spacing: 15,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                "First Name",
+                                style: TextStyle(fontSize: 16),
+                              ),
+                              SingleLineTextInputField(
+                                controller: _firstNameController,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text("Last Name", style: TextStyle(fontSize: 16)),
+                              SingleLineTextInputField(
+                                controller: _lastNameController,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Text("Email", style: TextStyle(fontSize: 16)),
                   Padding(
                     padding: EdgeInsets.only(bottom: 20),
@@ -62,7 +98,65 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10.0),
                     child: FilledButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          if (_retypeController.text !=
+                              _passwordController.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Error: The Passwords do not match",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } else {
+                            User newUser = User.create(
+                              firstName: _firstNameController.text,
+                              lastName: _lastNameController.text,
+                              email: _emailController.text,
+                              password: _passwordController.text,
+                            );
+
+                            try {
+                              await newUser.saveNew();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Registration Success",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+
+                              Navigator.of(context).pop();
+                            } catch (userSaveError) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Registration Error: ${userSaveError.toString()}",
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              print(userSaveError.toString());
+                            }
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Please correct above errors",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 8.0,

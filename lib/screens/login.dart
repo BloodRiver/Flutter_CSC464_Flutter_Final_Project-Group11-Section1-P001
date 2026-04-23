@@ -1,7 +1,9 @@
 import 'package:ai_language_tutor/input_widgets/input_fields.dart';
+import 'package:ai_language_tutor/models.dart';
 import 'package:ai_language_tutor/screens/mainscreen.dart';
 import 'package:ai_language_tutor/screens/register.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -58,12 +60,46 @@ class _LoginScreenState extends State<LoginScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10.0),
                     child: FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<MainScreen>(
-                            builder: (_) => MainScreen(),
-                          ),
-                        );
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          User? currentUser = await User.findUserByEmail(
+                            email: _emailController.text,
+                          );
+
+                          if (currentUser == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "User does not exist",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (!currentUser.checkPassword(
+                            _passwordController.text,
+                          )) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Incorrect Password",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                          Get.put<User>(currentUser);
+                          Navigator.of(context).push(
+                            MaterialPageRoute<MainScreen>(
+                              builder: (_) => MainScreen(),
+                            ),
+                          );
+                        }
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
