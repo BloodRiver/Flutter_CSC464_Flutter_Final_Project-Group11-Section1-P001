@@ -190,6 +190,8 @@ class Conversation {
     map['userId'] = userId;
     map['dateCreated'] = dateCreated;
     map['messages'] = messageIds;
+    map['title'] = title ?? "New Chat";
+    map['language'] = language;
 
     return map;
   }

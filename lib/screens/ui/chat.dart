@@ -18,7 +18,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final TextEditingController _messageController = TextEditingController();
 
-  late User _currentUser;
   late ChatController _conversationController;
 
   bool _isSending = false;
@@ -130,7 +129,6 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    _currentUser = Get.find<User>(tag: "currentUser");
     _conversationController = Get.find<ChatController>(tag: 'currentConv');
   }
 

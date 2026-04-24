@@ -238,7 +238,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                       if (historyController.isSelectionMode.value) {
                         historyController.toggleSelection(item.id!);
                       } else {
-                        // TODO: Load and open Conversation
+                        Get.find<ChatController>().setConversation(item);
+                        Get.find<NavigationController>().changePage(1);
                       }
                     },
                     child: AnimatedContainer(

@@ -2,7 +2,6 @@ import 'package:ai_language_tutor/models.dart';
 import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'chat.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,31 +12,11 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const List<String> _languages = <String>['English', 'Bangla'];
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _chatNameController = TextEditingController();
 
   String _selectedLanguage = _languages.first;
   late User currentUser;
-
-  void _navigateToChatScreen() {
-    Conversation newConversation = Conversation(
-      dateCreated: DateTime.now(),
-      userId: currentUser.id!,
-      language: _selectedLanguage,
-    );
-
-    newConversation.saveNew();
-
-    if (!Get.isRegistered<ChatController>()) {
-      Get.put<ChatController>(
-        ChatController(conversation: newConversation),
-        permanent: true,
-      );
-    } else {
-      Get.find<ChatController>().setConversation(newConversation);
-    }
-    Get.find<NavigationController>().changePage(1);
-
-    // TODO: Delete all GetxControllers upon logout
-  }
 
   @override
   void initState() {
@@ -62,6 +41,43 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    void navigateToChatScreen() async {
+      if (_chatNameController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              "Please enter chat name",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+        return;
+      }
+      Conversation newConversation = Conversation(
+        dateCreated: DateTime.now(),
+        userId: currentUser.id!,
+        language: _selectedLanguage,
+        title: _chatNameController.text.trim(),
+      );
+
+      await newConversation.saveNew();
+
+      print("New Conversation: ${newConversation.id}");
+
+      if (!Get.isRegistered<ChatController>()) {
+        Get.put<ChatController>(
+          ChatController(conversation: newConversation),
+          permanent: true,
+        );
+      } else {
+        Get.find<ChatController>().setConversation(newConversation);
+      }
+      Get.find<NavigationController>().changePage(1);
+
+      // TODO: Delete all GetxControllers upon logout
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Language Learning App'),
@@ -109,41 +125,53 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFF3A73CC)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Select language',
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedLanguage,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Enter Chat Name'),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _chatNameController,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? "Please enter chat name"
+                              : "",
                         ),
-                        items: _languages
-                            .map(
-                              (String language) => DropdownMenuItem<String>(
-                                value: language,
-                                child: Text(language),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (String? value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            _selectedLanguage = value;
-                          });
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Select language',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedLanguage,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                          ),
+                          items: _languages
+                              .map(
+                                (String language) => DropdownMenuItem<String>(
+                                  value: language,
+                                  child: Text(language),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (String? value) {
+                            if (value == null) {
+                              return;
+                            }
+                            setState(() {
+                              _selectedLanguage = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -155,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                     border: Border.all(color: const Color(0xFF4A89E8)),
                   ),
                   child: FilledButton.icon(
-                    onPressed: _navigateToChatScreen,
+                    onPressed: navigateToChatScreen,
                     icon: const Icon(Icons.chat_bubble_outline),
                     label: const Text('Navigate to chat screen'),
                   ),
