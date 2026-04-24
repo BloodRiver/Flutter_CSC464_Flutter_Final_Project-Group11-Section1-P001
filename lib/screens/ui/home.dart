@@ -1,3 +1,4 @@
+import 'package:ai_language_tutor/models.dart';
 import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,9 +15,35 @@ class _HomePageState extends State<HomePage> {
   static const List<String> _languages = <String>['English', 'Bangla'];
 
   String _selectedLanguage = _languages.first;
+  late User currentUser;
 
   void _navigateToChatScreen() {
+    Conversation newConversation = Conversation(
+      dateCreated: DateTime.now(),
+      userId: currentUser.id!,
+      language: _selectedLanguage,
+    );
+
+    newConversation.saveNew();
+
+    if (!Get.isRegistered<ChatController>()) {
+      Get.put<ChatController>(
+        ChatController(conversation: newConversation),
+        permanent: true,
+      );
+    } else {
+      Get.find<ChatController>().setConversation(newConversation);
+    }
     Get.find<NavigationController>().changePage(1);
+
+    // TODO: Delete all GetxControllers upon logout
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    currentUser = Get.find<User>(tag: "currentUser");
   }
 
   @override

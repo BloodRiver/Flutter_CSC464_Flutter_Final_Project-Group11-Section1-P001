@@ -6,8 +6,6 @@ import 'dart:convert';
 import 'package:ai_language_tutor/models.dart';
 
 class ChatScreen extends StatefulWidget {
-  String? selectedLanguage;
-
   ChatScreen({super.key});
 
   @override
@@ -15,14 +13,13 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  static const String _geminiModel = 'gemini-2.0-flash';
-  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
+  static const String _geminiModel = 'gemini-2.5-flash-lite';
+  static const String _apiKey = 'AIzaSyAj1XCQxxxFw_TME1T185nRjVwPTrkNymE';
 
   final TextEditingController _messageController = TextEditingController();
-  final Conversation _conversation = Conversation(
-    dateCreated: DateTime.now(),
-    userId: Get.find<User>(tag: 'currentUser').id!,
-  );
+
+  late User _currentUser;
+  late ChatController _conversationController;
 
   bool _isSending = false;
 
@@ -32,17 +29,18 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
 
-    setState(() async {
-      await _conversation.addMessage(
-        ChatMessage(
-          ai: false,
-          messageContent: userText,
-          timeSent: DateTime.now(),
-        ),
-      );
+    await _conversationController.conversation!.addMessage(
+      ChatMessage(
+        ai: false,
+        messageContent: userText,
+        timeSent: DateTime.now(),
+      ),
+    );
+
+    setState(() {
       _isSending = true;
+      _messageController.clear();
     });
-    _messageController.clear();
 
     try {
       if (_apiKey.isEmpty) {
@@ -52,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       final String prompt =
-          'You are a friendly ${widget.selectedLanguage} language tutor. '
+          'You are a friendly ${_conversationController.conversation!.language} language tutor. '
           'Answer in concise teaching style and include simple examples when useful. '
           'Student message: $userText';
 
@@ -101,25 +99,24 @@ class _ChatScreenState extends State<ChatScreen> {
           ? firstPart['text'] as String
           : 'I could not generate a response. Please try again.';
 
-      setState(() async {
-        await _conversation.addMessage(
-          ChatMessage(
-            ai: true,
-            messageContent: botReply,
-            timeSent: DateTime.now(),
-          ),
-        );
-      });
+      await _conversationController.conversation!.addMessage(
+        ChatMessage(
+          ai: true,
+          messageContent: botReply,
+          timeSent: DateTime.now(),
+        ),
+      );
+
+      setState(() {});
     } catch (error) {
-      setState(() async {
-        await _conversation.addMessage(
-          ChatMessage(
-            ai: true,
-            messageContent: 'Error: $error',
-            timeSent: DateTime.now(),
-          ),
-        );
-      });
+      await _conversationController.conversation!.addMessage(
+        ChatMessage(
+          ai: true,
+          messageContent: 'Error: $error',
+          timeSent: DateTime.now(),
+        ),
+      );
+      setState(() {});
     } finally {
       if (mounted) {
         setState(() {
@@ -130,6 +127,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    _currentUser = Get.find<User>(tag: "currentUser");
+    _conversationController = Get.find<ChatController>();
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     super.dispose();
@@ -137,19 +142,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    try {
-      widget.selectedLanguage = Get.find<String>(tag: "selectedLanguage");
-    } catch (e) {
-      print(e);
-    }
-    if (widget.selectedLanguage != null) {
+    if (_conversationController.conversation != null ||
+        !_conversationController.conversation!.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: Text('${widget.selectedLanguage} Tutor Chat')),
+        appBar: AppBar(
+          title: Text(
+            '${_conversationController.conversation!.language} Tutor Chat',
+          ),
+        ),
         body: SafeArea(
           child: Column(
             children: [
               Expanded(
-                child: _conversation.isEmpty
+                child:
+                    ((_conversationController.conversation == null) ||
+                        _conversationController.conversation!.isEmpty)
                     ? const Center(
                         child: Text(
                           'Start chatting with your AI tutor.',
@@ -158,11 +165,11 @@ class _ChatScreenState extends State<ChatScreen> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(12),
-                        itemCount: _conversation.length,
+                        itemCount: _conversationController.conversation!.length,
                         itemBuilder: (BuildContext context, int index) {
-                          final ChatMessage message = _conversation.getByIndex(
-                            index,
-                          );
+                          final ChatMessage message = _conversationController
+                              .conversation!
+                              .getByIndex(index);
                           final bool isUser = !message.ai;
                           return Align(
                             alignment: isUser

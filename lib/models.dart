@@ -109,6 +109,11 @@ class User {
 
     await userRef.update({'lastLoggedIn': FieldValue.serverTimestamp()});
   }
+
+  @override
+  String toString() {
+    return "<User: id=$id, firstName=$firstName, lastName=$lastName, email=$email>";
+  }
 }
 
 class ChatMessage {
@@ -154,11 +159,16 @@ class Conversation {
   List<ChatMessage> _messages = [];
   final String userId;
   final DateTime dateCreated;
+  final String language;
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _collectionName = "conversations";
 
-  Conversation({required this.userId, required this.dateCreated});
+  Conversation({
+    required this.userId,
+    required this.dateCreated,
+    required this.language,
+  });
 
   List<String> convertMessagesToIds() {
     List<String> messageIds = [];

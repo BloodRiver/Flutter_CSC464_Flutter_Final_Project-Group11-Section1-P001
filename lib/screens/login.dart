@@ -96,6 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           _emailController.clear();
                           _passwordController.clear();
                           await currentUser.updateLogin();
+                          print(currentUser.toString());
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -106,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           );
 
-                          Get.put<User>(currentUser);
+                          Get.put<User>(tag: 'currentUser', currentUser);
                           Navigator.of(context).push(
                             MaterialPageRoute<MainScreen>(
                               builder: (_) => MainScreen(),

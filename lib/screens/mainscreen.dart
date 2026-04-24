@@ -17,6 +17,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final NavigationController navigationController = Get.put(
       NavigationController(),
+      permanent: true,
     );
     return Scaffold(
       body: PageView(
