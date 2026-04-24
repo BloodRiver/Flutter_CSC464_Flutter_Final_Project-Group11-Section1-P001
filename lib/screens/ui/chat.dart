@@ -131,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
 
     _currentUser = Get.find<User>(tag: "currentUser");
-    _conversationController = Get.find<ChatController>();
+    _conversationController = Get.find<ChatController>(tag: 'currentConv');
   }
 
   @override

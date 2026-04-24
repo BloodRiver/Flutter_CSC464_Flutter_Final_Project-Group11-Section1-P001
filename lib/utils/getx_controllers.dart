@@ -1,4 +1,5 @@
 import 'package:ai_language_tutor/models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -34,5 +35,76 @@ class ChatController extends GetxController {
 
   void setConversation(Conversation newConv) {
     _currentConversation.value = newConv;
+  }
+}
+
+class ChatHistoryController extends GetxController {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  RxList<Conversation> conversations = <Conversation>[].obs;
+
+  var isSelectionMode = false.obs;
+  var allSelected = false.obs;
+  var selectedIds = <String>{}.obs;
+  var searchQuery = "".obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    String currentUserid = Get.find<User>(tag: 'currentUser').id!;
+
+    print("ChatHistoryController onInit: $currentUserid");
+
+    conversations.bindStream(
+      _db
+          .collection(Conversation.collectionName)
+          .where('userId', isEqualTo: currentUserid)
+          .orderBy('dateCreated', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            if (snapshot.docs.isEmpty) return <Conversation>[];
+
+            return snapshot.docs
+                .map((doc) => Conversation.fromFirestore(doc))
+                .toList();
+          }),
+    );
+  }
+
+  List<Conversation> get filteredItems {
+    if (searchQuery.isEmpty) {
+      return conversations;
+    }
+
+    return conversations
+        .where(
+          (c) =>
+              c.title!.toLowerCase().contains(searchQuery.value.toLowerCase()),
+        )
+        .toList();
+  }
+
+  void toggleSelection(String id) {
+    if (selectedIds.contains(id)) {
+      selectedIds.remove(id);
+    } else {
+      selectedIds.add(id);
+    }
+  }
+
+  void selectAll(bool select) {
+    if (select) {
+      selectedIds.assignAll(conversations.map((c) => c.id!).toList());
+    } else {
+      selectedIds.clear();
+    }
+  }
+
+  Future<void> deleteSelected() async {
+    for (String id in selectedIds) {
+      await Conversation.deleteById(id);
+    }
+    selectedIds.clear();
+    isSelectionMode.value = false;
   }
 }

@@ -68,8 +68,8 @@ class User {
         lastName: userData['lastName'],
         email: userData['email'],
         password: userData['password'],
-        dateJoined: (userData['dateJoined'] as Timestamp?)?.toDate(),
-        lastLoggedIn: (userData['lastLoggedIn'] as Timestamp?)?.toDate(),
+        dateJoined: (userData['dateJoined'] as Timestamp).toDate(),
+        lastLoggedIn: (userData['lastLoggedIn'] as Timestamp).toDate(),
       );
 
       return loadedUser;
@@ -155,19 +155,21 @@ class ChatMessage {
 }
 
 class Conversation {
-  late String id, title;
+  late String? id, title;
   List<ChatMessage> _messages = [];
   final String userId;
   final DateTime dateCreated;
   final String language;
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const String _collectionName = "conversations";
+  static const String collectionName = "conversations";
 
   Conversation({
     required this.userId,
     required this.dateCreated,
     required this.language,
+    this.id,
+    this.title,
   });
 
   List<String> convertMessagesToIds() {
@@ -197,17 +199,33 @@ class Conversation {
     await newMessage.save();
 
     await Conversation._db
-        .collection(Conversation._collectionName)
+        .collection(Conversation.collectionName)
         .doc(this.id)
         .update({'messages': convertMessagesToIds()});
   }
 
   Future<void> saveNew() async {
     DocumentReference docRef = await Conversation._db
-        .collection(Conversation._collectionName)
+        .collection(Conversation.collectionName)
         .add(this.toMap());
 
     this.id = docRef.id;
+  }
+
+  static Future<void> deleteById(String id) async {
+    await _db.collection(Conversation.collectionName).doc(id).delete();
+  }
+
+  factory Conversation.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map;
+
+    return Conversation(
+      id: doc.id,
+      title: data['title'] ?? 'New Chat',
+      userId: data['userId'],
+      dateCreated: (data['dateCreated'] as Timestamp).toDate(),
+      language: data['language'] ?? "English",
+    );
   }
 
   bool get isEmpty {

@@ -44,6 +44,20 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     currentUser = Get.find<User>(tag: "currentUser");
+
+    Conversation newConversation = Conversation(
+      dateCreated: DateTime.now(),
+      userId: currentUser.id!,
+      language: _selectedLanguage,
+    );
+
+    newConversation.saveNew();
+
+    Get.put<ChatController>(
+      tag: 'currentConv',
+      ChatController(conversation: newConversation),
+      permanent: true,
+    );
   }
 
   @override
