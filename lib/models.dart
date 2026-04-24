@@ -155,7 +155,7 @@ class ChatMessage {
 }
 
 class Conversation {
-  late String id;
+  late String id, title;
   List<ChatMessage> _messages = [];
   final String userId;
   final DateTime dateCreated;

@@ -14,7 +14,11 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
   final Color borderColor = const Color(0xFF1e3a8a);
 
   List<Map<String, String>> historyItems = [
-    {"id": "1", "title": "English Conversation: Travel", "date": "Apr 24, 2026"},
+    {
+      "id": "1",
+      "title": "English Conversation: Travel",
+      "date": "Apr 24, 2026",
+    },
     {"id": "2", "title": "Bangla Basics: Greetings", "date": "Apr 23, 2026"},
     {"id": "3", "title": "English Grammar: Past Tense", "date": "Apr 22, 2026"},
     {"id": "4", "title": "Bangla Food Vocabulary", "date": "Apr 21, 2026"},
@@ -24,6 +28,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
   List<String> selectedIds = [];
   String searchQuery = "";
   bool isSelectionMode = false; // New flag to track if we are selecting
+  bool _allSelected = false;
 
   void _confirmDelete() {
     showDialog(
@@ -34,18 +39,29 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: borderColor),
         ),
-        title: const Text("Delete Conversations", style: TextStyle(color: Colors.white)),
-        content: Text("Delete ${selectedIds.length} items permanently?", style: const TextStyle(color: Colors.white70)),
+        title: const Text(
+          "Delete Conversations",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          "Delete ${selectedIds.length} items permanently?",
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              "CANCEL",
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () {
               setState(() {
-                historyItems.removeWhere((item) => selectedIds.contains(item['id']));
+                historyItems.removeWhere(
+                  (item) => selectedIds.contains(item['id']),
+                );
                 selectedIds.clear();
                 isSelectionMode = false;
               });
@@ -61,7 +77,10 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredItems = historyItems
-        .where((item) => item['title']!.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where(
+          (item) =>
+              item['title']!.toLowerCase().contains(searchQuery.toLowerCase()),
+        )
         .toList();
 
     return Scaffold(
@@ -69,18 +88,43 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: Text(isSelectionMode ? "${selectedIds.length} Selected" : "Chat History"),
+        title: Text(
+          isSelectionMode ? "${selectedIds.length} Selected" : "Chat History",
+        ),
         actions: [
           // DELETE BUTTON (Only shows if something is selected)
           if (selectedIds.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            FilledButton(
               onPressed: _confirmDelete,
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.fromMap({
+                  WidgetState.any: Colors.red.shade700,
+                }),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 5.0,
+                  horizontal: 12,
+                ),
+                child: Row(
+                  spacing: 5,
+                  children: [
+                    const Icon(Icons.delete_outline, color: Colors.white),
+                    Text(
+                      "Delete Selected",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          
+
           // SELECT ALL / DESELECT TOGGLE
           IconButton(
-            icon: Icon(isSelectionMode ? Icons.close : Icons.edit_note, color: Colors.white),
+            icon: Icon(
+              isSelectionMode ? Icons.close : Icons.edit_note,
+              color: Colors.white,
+            ),
             onPressed: () {
               setState(() {
                 isSelectionMode = !isSelectionMode;
@@ -114,6 +158,28 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
             ),
           ),
 
+          if (isSelectionMode)
+            Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Row(
+                spacing: 5,
+                children: [
+                  Checkbox(
+                    semanticLabel: "Select All",
+                    value: _allSelected,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        _allSelected = newValue!;
+                      });
+                    },
+                  ),
+                  Text(
+                    "Select All",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
           // LIST
           Expanded(
             child: ListView.builder(
@@ -121,7 +187,8 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
               padding: const EdgeInsets.all(16),
               itemBuilder: (context, index) {
                 final item = filteredItems[index];
-                final isSelected = selectedIds.contains(item['id']);
+                final isSelected =
+                    selectedIds.contains(item['id']) || _allSelected;
 
                 return GestureDetector(
                   onLongPress: () {
@@ -133,8 +200,12 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                   onTap: () {
                     if (isSelectionMode) {
                       setState(() {
-                        isSelected ? selectedIds.remove(item['id']) : selectedIds.add(item['id']!);
+                        isSelected
+                            ? selectedIds.remove(item['id'])
+                            : selectedIds.add(item['id']!);
                       });
+                    } else {
+                      // TODO: Load and open Conversation
                     }
                   },
                   child: AnimatedContainer(
@@ -142,9 +213,12 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isSelected ? accentBlue.withOpacity(0.15) : cardColor,
+                      color: isSelected ? accentBlue.withAlpha(15) : cardColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isSelected ? accentBlue : borderColor, width: isSelected ? 2 : 1),
+                      border: Border.all(
+                        color: isSelected ? accentBlue : borderColor,
+                        width: isSelected ? 2 : 1,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -155,26 +229,64 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                             activeColor: accentBlue,
                             onChanged: (val) {
                               setState(() {
-                                val! ? selectedIds.add(item['id']!) : selectedIds.remove(item['id']);
+                                val!
+                                    ? selectedIds.add(item['id']!)
+                                    : selectedIds.remove(item['id']);
                               });
                             },
                           )
                         else
                           CircleAvatar(
-                            backgroundColor: borderColor.withOpacity(0.5),
-                            child: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 18),
+                            backgroundColor: borderColor.withAlpha(50),
+                            child: const Icon(
+                              Icons.chat_bubble_outline,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item['title']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                              Text(item['date']!, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                              Text(
+                                item['title']!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                item['date']!,
+                                style: const TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        if (!isSelectionMode) const Icon(Icons.chevron_right, color: Colors.white24),
+                        if (!isSelectionMode)
+                          PopupMenuButton(
+                            onSelected: (String result) {
+                              // TODO Perform delete
+                            },
+                            icon: const Icon(
+                              Icons.more_vert,
+                              color: Colors.white24,
+                            ),
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                                  const PopupMenuItem<String>(
+                                    value: "Edit",
+                                    child: Text("Edit Name"),
+                                  ),
+                                  const PopupMenuItem<String>(
+                                    value: "Delete",
+                                    child: Text("Delete Chat"),
+                                  ),
+                                ],
+                          ),
                       ],
                     ),
                   ),
