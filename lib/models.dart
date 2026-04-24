@@ -68,8 +68,8 @@ class User {
         lastName: userData['lastName'],
         email: userData['email'],
         password: userData['password'],
-        dateJoined: (userData['dateJoined'] as Timestamp?)?.toDate(),
-        lastLoggedIn: (userData['lastLoggedIn'] as Timestamp?)?.toDate(),
+        dateJoined: (userData['dateJoined'] as Timestamp).toDate(),
+        lastLoggedIn: (userData['lastLoggedIn'] as Timestamp).toDate(),
       );
 
       return loadedUser;
@@ -109,62 +109,89 @@ class User {
 
     await userRef.update({'lastLoggedIn': FieldValue.serverTimestamp()});
   }
+
+  @override
+  String toString() {
+    return "<User: id=$id, firstName=$firstName, lastName=$lastName, email=$email>";
+  }
 }
 
 class ChatMessage {
-  late String id;
+  String? id;
   final bool ai;
   final String messageContent;
   final DateTime timeSent;
   bool saved = false;
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const String _collectionName = "chat_messages";
+  static final String _collectionName = "chat_messages";
 
   ChatMessage({
     required this.ai,
     required this.messageContent,
     required this.timeSent,
+    this.id,
   });
 
+  // Ensure your toMap handles the Timestamp correctly to avoid the DartError
   Map<String, dynamic> toMap() {
-    Map<String, dynamic> map = Map<String, dynamic>();
-
-    map['ai'] = ai;
-    map['messageContent'] = messageContent;
-    map['timeSent'] = timeSent;
-
-    return map;
+    return {
+      'ai': ai,
+      'messageContent': messageContent,
+      'timeSent': Timestamp.fromDate(timeSent), // Crucial for Firestore
+    };
   }
 
   Future<void> save() async {
     if (!saved) {
+      // Saves to the top-level "chat_messages" collection
       DocumentReference docRef = await ChatMessage._db
           .collection(ChatMessage._collectionName)
           .add(this.toMap());
 
-      this.id = docRef.id;
+      this.id =
+          docRef.id; // Now you have the ID to give back to the Conversation
       saved = true;
     }
+  }
+
+  factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
+    // Using 'as Map<String, dynamic>' is safer for null safety
+    final data = doc.data() as Map<String, dynamic>;
+
+    return ChatMessage(
+      id: doc.id,
+      ai: data['ai'] ?? false,
+      messageContent: data['messageContent'] ?? '',
+      // Ensure the Timestamp conversion is handled correctly
+      timeSent: (data['timeSent'] as Timestamp).toDate(),
+    );
   }
 }
 
 class Conversation {
-  late String id;
+  late String? id, title;
   List<ChatMessage> _messages = [];
   final String userId;
   final DateTime dateCreated;
+  final String language;
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const String _collectionName = "conversations";
+  static const String collectionName = "conversations";
 
-  Conversation({required this.userId, required this.dateCreated});
+  Conversation({
+    required this.userId,
+    required this.dateCreated,
+    required this.language,
+    this.id,
+    this.title,
+  });
 
   List<String> convertMessagesToIds() {
     List<String> messageIds = [];
 
     for (ChatMessage eachMessage in _messages) {
-      messageIds.add(eachMessage.id);
+      messageIds.add(eachMessage.id!);
     }
 
     return messageIds;
@@ -178,6 +205,8 @@ class Conversation {
     map['userId'] = userId;
     map['dateCreated'] = dateCreated;
     map['messages'] = messageIds;
+    map['title'] = title ?? "New Chat";
+    map['language'] = language;
 
     return map;
   }
@@ -187,17 +216,33 @@ class Conversation {
     await newMessage.save();
 
     await Conversation._db
-        .collection(Conversation._collectionName)
+        .collection(Conversation.collectionName)
         .doc(this.id)
         .update({'messages': convertMessagesToIds()});
   }
 
   Future<void> saveNew() async {
     DocumentReference docRef = await Conversation._db
-        .collection(Conversation._collectionName)
+        .collection(Conversation.collectionName)
         .add(this.toMap());
 
     this.id = docRef.id;
+  }
+
+  static Future<void> deleteById(String id) async {
+    await _db.collection(Conversation.collectionName).doc(id).delete();
+  }
+
+  factory Conversation.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map;
+
+    return Conversation(
+      id: doc.id,
+      title: data['title'] ?? 'New Chat',
+      userId: data['userId'],
+      dateCreated: (data['dateCreated'] as Timestamp).toDate(),
+      language: data['language'] ?? "English",
+    );
   }
 
   bool get isEmpty {
