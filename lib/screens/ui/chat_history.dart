@@ -67,7 +67,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text("DELETE"),
+            child: const Text("DELETE", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
