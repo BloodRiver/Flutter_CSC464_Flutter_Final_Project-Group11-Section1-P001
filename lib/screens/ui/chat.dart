@@ -1,135 +1,28 @@
 import 'package:ai_language_tutor/utils/getx_controllers.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
-import 'dart:convert';
 import 'package:ai_language_tutor/models.dart';
 
 class ChatScreen extends StatefulWidget {
-  ChatScreen({super.key});
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  static const String _geminiModel = 'gemini-2.5-flash-lite';
-  static const String _apiKey = 'AIzaSyAj1XCQxxxFw_TME1T185nRjVwPTrkNymE';
+  static const String _geminiModel = 'gemini-2.0-flash'; // Updated model name
+  static const String _apiKey =
+      'YOUR_API_KEY'; // Use --dart-define in production
 
   final TextEditingController _messageController = TextEditingController();
-
-  late ChatController _conversationController;
-
-  bool _isSending = false;
-
-  Future<void> _sendMessage() async {
-    final String userText = _messageController.text.trim();
-    if (userText.isEmpty || _isSending) {
-      return;
-    }
-
-    await _conversationController.conversation!.addMessage(
-      ChatMessage(
-        ai: false,
-        messageContent: userText,
-        timeSent: DateTime.now(),
-      ),
-    );
-
-    setState(() {
-      _isSending = true;
-      _messageController.clear();
-    });
-
-    try {
-      if (_apiKey.isEmpty) {
-        throw Exception(
-          'Missing GEMINI_API_KEY. Run with --dart-define=GEMINI_API_KEY=your_key',
-        );
-      }
-
-      final String prompt =
-          'You are a friendly ${_conversationController.conversation!.language} language tutor. '
-          'Answer in concise teaching style and include simple examples when useful. '
-          'Student message: $userText';
-
-      final Uri uri = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$_geminiModel:generateContent?key=$_apiKey',
-      );
-
-      final http.Response response = await http.post(
-        uri,
-        headers: <String, String>{'Content-Type': 'application/json'},
-        body: jsonEncode(<String, dynamic>{
-          'contents': <Map<String, dynamic>>[
-            <String, dynamic>{
-              'role': 'user',
-              'parts': <Map<String, String>>[
-                <String, String>{'text': prompt},
-              ],
-            },
-          ],
-        }),
-      );
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Gemini API error (${response.statusCode}): ${response.body}',
-        );
-      }
-
-      final Map<String, dynamic> decoded =
-          jsonDecode(response.body) as Map<String, dynamic>;
-      final List<dynamic> candidates =
-          decoded['candidates'] as List<dynamic>? ?? <dynamic>[];
-      final Map<String, dynamic> firstCandidate = candidates.isNotEmpty
-          ? candidates.first as Map<String, dynamic>
-          : <String, dynamic>{};
-      final Map<String, dynamic> content =
-          firstCandidate['content'] as Map<String, dynamic>? ??
-          <String, dynamic>{};
-      final List<dynamic> parts =
-          content['parts'] as List<dynamic>? ?? <dynamic>[];
-      final Map<String, dynamic> firstPart = parts.isNotEmpty
-          ? parts.first as Map<String, dynamic>
-          : <String, dynamic>{};
-      final String botReply =
-          (firstPart['text'] as String?)?.trim().isNotEmpty == true
-          ? firstPart['text'] as String
-          : 'I could not generate a response. Please try again.';
-
-      await _conversationController.conversation!.addMessage(
-        ChatMessage(
-          ai: true,
-          messageContent: botReply,
-          timeSent: DateTime.now(),
-        ),
-      );
-
-      setState(() {});
-    } catch (error) {
-      await _conversationController.conversation!.addMessage(
-        ChatMessage(
-          ai: true,
-          messageContent: 'Error: $error',
-          timeSent: DateTime.now(),
-        ),
-      );
-      setState(() {});
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSending = false;
-        });
-      }
-    }
-  }
+  late ChatController _chatController;
 
   @override
   void initState() {
     super.initState();
-
-    _conversationController = Get.find<ChatController>(tag: 'currentConv');
+    // Use the tag if you initialized it with one, otherwise remove the tag parameter
+    _chatController = Get.find<ChatController>();
   }
 
   @override
@@ -138,125 +31,161 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSend() async {
+    final String userText = _messageController.text.trim();
+    if (userText.isEmpty || _chatController.isSending.value) return;
+
+    _messageController.clear();
+    await _chatController.sendMessageToGemini(userText, _apiKey, _geminiModel);
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_conversationController.conversation != null ||
-        !_conversationController.conversation!.isEmpty) {
+    return Obx(() {
+      final conv = _chatController.currentConversation.value;
+
+      // 1. Check if a conversation is actually active
+      if (conv == null) {
+        return _buildNoConversationState();
+      }
+
       return Scaffold(
+        backgroundColor: const Color(0xFF050a14),
         appBar: AppBar(
-          title: Text(
-            '${_conversationController.conversation!.language} Tutor Chat',
-          ),
+          backgroundColor: const Color(0xFF050a14),
+          title: Text('${conv.language} Tutor'),
+          elevation: 0,
         ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child:
-                    ((_conversationController.conversation == null) ||
-                        _conversationController.conversation!.isEmpty)
-                    ? const Center(
-                        child: Text(
-                          'Start chatting with your AI tutor.',
-                          style: TextStyle(color: Color(0xFFABC3F5)),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: _conversationController.conversation!.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          final ChatMessage message = _conversationController
-                              .conversation!
-                              .getByIndex(index);
-                          final bool isUser = !message.ai;
-                          return Align(
-                            alignment: isUser
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.all(12),
-                              constraints: const BoxConstraints(maxWidth: 320),
-                              decoration: BoxDecoration(
-                                color: isUser
-                                    ? const Color(0xFF2F7BFF)
-                                    : const Color(0xFF101D34),
-                                border: Border.all(
-                                  color: isUser
-                                      ? const Color(0xFF4A90FF)
-                                      : const Color(0xFF203A69),
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                message.messageContent,
-                                style: TextStyle(
-                                  color: isUser
-                                      ? Colors.white
-                                      : const Color(0xFFE8F0FF),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        textInputAction: TextInputAction.send,
-                        decoration: const InputDecoration(
-                          hintText: 'Type your message...',
-                          border: OutlineInputBorder(),
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
-                      ),
+        body: Column(
+          children: [
+            // 2. Chat Message List
+            Expanded(
+              child: Obx(() {
+                final messages = _chatController.messages;
+
+                if (messages.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Say 'Hello' to start your lesson!",
+                      style: TextStyle(color: Colors.white38),
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: _isSending ? null : _sendMessage,
-                      child: _isSending
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Send'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  reverse:
+                      false, // Set to true if you want messages to start from bottom
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    return _buildMessageBubble(messages[index]);
+                  },
+                );
+              }),
+            ),
+
+            // 3. Input Area
+            _buildInputArea(),
+          ],
         ),
       );
-    }
+    });
+  }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildMessageBubble(ChatMessage message) {
+    bool isUser = !message.ai;
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isUser ? const Color(0xFF2F7BFF) : const Color(0xFF0f1a2e),
+          borderRadius: BorderRadius.circular(15),
+          border: isUser ? null : Border.all(color: const Color(0xFF1e3a8a)),
+        ),
+        child: Text(
+          message.messageContent,
+          style: const TextStyle(color: Colors.white, fontSize: 15),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+      decoration: const BoxDecoration(color: Color(0xFF0a1220)),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Text("Please Select a Language from the Home Screen"),
-          ),
-          FilledButton(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                vertical: 8.0,
-                horizontal: 16,
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Type message...',
+                hintStyle: const TextStyle(color: Colors.white24),
+                filled: true,
+                fillColor: const Color(0xFF050a14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: const BorderSide(color: Color(0xFF1e3a8a)),
+                ),
               ),
-              child: Text("Go Back Home"),
+              onSubmitted: (_) => _handleSend(),
             ),
-            onPressed: () {
-              Get.find<NavigationController>().changePage(0);
-            },
+          ),
+          const SizedBox(width: 8),
+          Obx(
+            () => CircleAvatar(
+              backgroundColor: const Color(0xFF2F7BFF),
+              child: IconButton(
+                icon: _chatController.isSending.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.send, color: Colors.white),
+                onPressed: _chatController.isSending.value ? null : _handleSend,
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNoConversationState() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF050a14),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.chat_bubble_outline,
+              size: 80,
+              color: Colors.white10,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Please select a language to begin",
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Get.find<NavigationController>().changePage(0),
+              child: const Text("Go Back Home"),
+            ),
+          ],
+        ),
       ),
     );
   }

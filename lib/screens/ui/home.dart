@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
 
     Get.put<ChatController>(
       tag: 'currentConv',
-      ChatController(conversation: newConversation),
+      ChatController(currentConversation: newConversation),
       permanent: true,
     );
   }
@@ -67,7 +67,7 @@ class _HomePageState extends State<HomePage> {
 
       if (!Get.isRegistered<ChatController>()) {
         Get.put<ChatController>(
-          ChatController(conversation: newConversation),
+          ChatController(currentConversation: newConversation),
           permanent: true,
         );
       } else {

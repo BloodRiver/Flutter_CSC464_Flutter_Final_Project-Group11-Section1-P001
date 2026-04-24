@@ -117,40 +117,55 @@ class User {
 }
 
 class ChatMessage {
-  late String id;
+  String? id;
   final bool ai;
   final String messageContent;
   final DateTime timeSent;
   bool saved = false;
 
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  static const String _collectionName = "chat_messages";
+  static final String _collectionName = "chat_messages";
 
   ChatMessage({
     required this.ai,
     required this.messageContent,
     required this.timeSent,
+    this.id,
   });
 
+  // Ensure your toMap handles the Timestamp correctly to avoid the DartError
   Map<String, dynamic> toMap() {
-    Map<String, dynamic> map = Map<String, dynamic>();
-
-    map['ai'] = ai;
-    map['messageContent'] = messageContent;
-    map['timeSent'] = timeSent;
-
-    return map;
+    return {
+      'ai': ai,
+      'messageContent': messageContent,
+      'timeSent': Timestamp.fromDate(timeSent), // Crucial for Firestore
+    };
   }
 
   Future<void> save() async {
     if (!saved) {
+      // Saves to the top-level "chat_messages" collection
       DocumentReference docRef = await ChatMessage._db
           .collection(ChatMessage._collectionName)
           .add(this.toMap());
 
-      this.id = docRef.id;
+      this.id =
+          docRef.id; // Now you have the ID to give back to the Conversation
       saved = true;
     }
+  }
+
+  factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
+    // Using 'as Map<String, dynamic>' is safer for null safety
+    final data = doc.data() as Map<String, dynamic>;
+
+    return ChatMessage(
+      id: doc.id,
+      ai: data['ai'] ?? false,
+      messageContent: data['messageContent'] ?? '',
+      // Ensure the Timestamp conversion is handled correctly
+      timeSent: (data['timeSent'] as Timestamp).toDate(),
+    );
   }
 }
 
@@ -176,7 +191,7 @@ class Conversation {
     List<String> messageIds = [];
 
     for (ChatMessage eachMessage in _messages) {
-      messageIds.add(eachMessage.id);
+      messageIds.add(eachMessage.id!);
     }
 
     return messageIds;
