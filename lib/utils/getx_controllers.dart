@@ -30,14 +30,12 @@ class NavigationController extends GetxController {
 class ChatController extends GetxController {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  bool initialized = false;
+
   // Observables
   final Rxn<Conversation> currentConversation = Rxn<Conversation>();
   final RxList<ChatMessage> messages = <ChatMessage>[].obs;
   final RxBool isSending = false.obs;
-
-  ChatController({required Conversation currentConversation}) {
-    this.currentConversation.value = currentConversation;
-  }
 
   // Set the conversation and bind the stream for real-time messages
   void setConversation(Conversation conversation) {
@@ -74,16 +72,15 @@ class ChatController extends GetxController {
 
     try {
       // 1. Add User Message to Firestore
-      final userMessage = ChatMessage(
-        ai: false,
-        messageContent: userText,
-        timeSent: DateTime.now(),
-      );
       await _db
           .collection('conversations')
           .doc(convId)
           .collection('messages')
-          .add(userMessage.toMap());
+          .add({
+            'ai': false,
+            'messageContent': userText,
+            'timeSent': DateTime.now(),
+          });
 
       // 2. Prepare Gemini Prompt
       final String prompt =
@@ -119,23 +116,17 @@ class ChatController extends GetxController {
           'No response generated.';
 
       // 5. Add AI Message to Firestore
-      final aiMessage = ChatMessage(
-        ai: true,
-        messageContent: botReply.trim(),
-        timeSent: DateTime.now(),
-      );
       await _db
           .collection('conversations')
           .doc(convId)
           .collection('messages')
-          .add(aiMessage.toMap());
+          .add({
+            'ai': true,
+            'messageContent': botReply.trim(),
+            'timeSent': DateTime.now(),
+          });
     } catch (e) {
-      Get.snackbar(
-        "Error",
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.5),
-      );
+      print("Error: ${e.toString()}");
     } finally {
       isSending.value = false;
     }
@@ -154,10 +145,7 @@ class ChatHistoryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-
     String currentUserid = Get.find<User>(tag: 'currentUser').id!;
-
-    print("ChatHistoryController onInit: $currentUserid");
 
     conversations.bindStream(
       _db
