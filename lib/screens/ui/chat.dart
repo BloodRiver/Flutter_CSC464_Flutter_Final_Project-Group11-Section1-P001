@@ -13,7 +13,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   static const String _geminiModel = 'gemini-2.0-flash'; // Updated model name
   static const String _apiKey =
-      'YOUR_API_KEY'; // Use --dart-define in production
+      'Your-API-KEY'; // Use --dart-define in production
 
   final TextEditingController _messageController = TextEditingController();
   late ChatController _chatController;
@@ -22,7 +22,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     // Use the tag if you initialized it with one, otherwise remove the tag parameter
-    _chatController = Get.find<ChatController>();
+    _chatController = Get.find<ChatController>(tag: 'currentConv');
   }
 
   @override
@@ -45,7 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final conv = _chatController.currentConversation.value;
 
       // 1. Check if a conversation is actually active
-      if (conv == null) {
+      if (conv == null || (_chatController.initialized == false)) {
         return _buildNoConversationState();
       }
 
@@ -53,7 +53,9 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: const Color(0xFF050a14),
         appBar: AppBar(
           backgroundColor: const Color(0xFF050a14),
-          title: Text('${conv.language} Tutor'),
+          title: Text(
+            '${conv.language} Tutor - ${_chatController.currentConversation.value!.title}',
+          ),
           elevation: 0,
         ),
         body: Column(

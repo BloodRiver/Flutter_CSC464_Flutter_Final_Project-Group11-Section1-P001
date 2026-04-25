@@ -23,18 +23,9 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     currentUser = Get.find<User>(tag: "currentUser");
-
-    Conversation newConversation = Conversation(
-      dateCreated: DateTime.now(),
-      userId: currentUser.id!,
-      language: _selectedLanguage,
-    );
-
-    newConversation.saveNew();
-
     Get.put<ChatController>(
       tag: 'currentConv',
-      ChatController(currentConversation: newConversation),
+      ChatController(),
       permanent: true,
     );
   }
@@ -54,6 +45,7 @@ class _HomePageState extends State<HomePage> {
         );
         return;
       }
+
       Conversation newConversation = Conversation(
         dateCreated: DateTime.now(),
         userId: currentUser.id!,
@@ -65,17 +57,14 @@ class _HomePageState extends State<HomePage> {
 
       print("New Conversation: ${newConversation.id}");
 
-      if (!Get.isRegistered<ChatController>()) {
-        Get.put<ChatController>(
-          ChatController(currentConversation: newConversation),
-          permanent: true,
-        );
-      } else {
-        Get.find<ChatController>().setConversation(newConversation);
-      }
-      Get.find<NavigationController>().changePage(1);
+      ChatController chatController = Get.find<ChatController>(
+        tag: 'currentConv',
+      );
 
-      // TODO: Delete all GetxControllers upon logout
+      chatController.setConversation(newConversation);
+      chatController.initialized = true;
+
+      Get.find<NavigationController>().changePage(1);
     }
 
     return Scaffold(
